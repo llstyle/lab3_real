@@ -24,6 +24,7 @@ enum EventType : uint8_t
     EVT_TAMPER_ON,       // начало вмешательства
     EVT_TAMPER_OFF,      // конец вмешательства
     EVT_JUMP,            // резкий скачок расстояния
+    EVT_NO_ECHO,         // серия пропусков эха (датчик закрыли или повернули)
 };
 
 enum EventCause : uint8_t

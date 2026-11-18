@@ -12,6 +12,7 @@ const char *eventName(EventType t)
     case EVT_TAMPER_ON:  return "TAMPER_ON";
     case EVT_TAMPER_OFF: return "TAMPER_OFF";
     case EVT_JUMP:       return "JUMP";
+    case EVT_NO_ECHO:    return "NO_ECHO";
     }
     return "UNKNOWN";
 }

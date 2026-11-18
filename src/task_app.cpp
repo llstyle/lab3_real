@@ -5,7 +5,8 @@
 //
 //    сдвиг   : |d_f − d_ref| ≥ SHIFT_THRESHOLD_CM   (медленный канал)
 //    рывок   : |d − d_f|     ≥ JUMP_THRESHOLD_CM    (быстрый канал, удержание 1 с)
-//    нет эха : NO_ECHO_ALARM пропусков подряд     (датчик повернули/закрыли)
+//    нет эха : NO_ECHO_ALARM пропусков подряд     (датчик повернули/закрыли),
+//              событие NO_ECHO при каждом начале серии пропусков
 // =====================================================================
 #include "tasks.h"
 #include "config.h"
@@ -47,6 +48,7 @@ void appTask(void *arg)
     uint32_t lastJumpMs = 0;
     bool jumpSeen = false;
     bool tamperPrev = false;
+    bool lostPrev = false;
 
     for (;;)
     {
@@ -92,6 +94,12 @@ void appTask(void *arg)
             jumpSeen = true;
         }
         bool jumpHold = jumpSeen && (m.tMs - lastJumpMs < JUMP_HOLD_MS);
+
+        // Пропажа эха — отдельное событие, даже если тревога уже включена
+        // другим признаком (например, рукой: сначала срабатывает рывок)
+        if (lost && !lostPrev)
+            emit(EVT_NO_ECHO, CAUSE_NO_ECHO, m, dev, devPk);
+        lostPrev = lost;
 
         // ---- Решение ----
         bool tamper = shift || jumpHold || lost;
