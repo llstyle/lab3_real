@@ -24,7 +24,7 @@ static bool mqttTried = false;
 static bool mqttWasUp = false;
 
 // испытание потери связи
-static char testMode = 0;            // 0 — нет, 'w' — Wi-Fi, 'm' — MQTT
+static char testMode = 0; // 0 — нет, 'w' — Wi-Fi, 'm' — MQTT
 static uint32_t testUntilMs = 0;
 static volatile bool buttonPressed = false;
 
@@ -33,13 +33,14 @@ void netBegin()
 {
     uint64_t mac = ESP.getEfuseMac();
     // Уникальный client ID: часть MAC + случайное число при каждом запуске.
-    // В Wokwi у всех ESP32 одинаковый MAC; если два клиента подключаются к
-    // брокеру с одним ID, брокер отключает предыдущего.
+    // Если два клиента подключаются к брокеру с одним ID, брокер отключает
+    // предыдущего; после перезапуска платы старое соединение может ещё
+    // числиться на брокере, поэтому ID меняется при каждом запуске.
     snprintf(clientId, sizeof(clientId), "%s-%04lX%04X", DEVICE_ID,
              (unsigned long)((mac >> 32) & 0xFFFFUL), (unsigned)(esp_random() & 0xFFFF));
 
     WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(false);    // переподключением управляем сами
+    WiFi.setAutoReconnect(false); // переподключением управляем сами
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setBufferSize(MQTT_BUFFER);
     mqtt.setSocketTimeout(MQTT_SOCKET_TIMEOUT_S);
@@ -54,7 +55,7 @@ const char *mqttClientId() { return clientId; }
 bool wifiEnsure()
 {
     if (testMode == 'w')
-        return false;                // идёт испытание: не переподключаться
+        return false; // идёт испытание: не переподключаться
 
     if (WiFi.status() == WL_CONNECTED)
     {
@@ -64,7 +65,7 @@ bool wifiEnsure()
             Serial.printf("# Wi-Fi: connected, IP %s\r\n", WiFi.localIP().toString().c_str());
             if (!ntpStarted)
             {
-                configTime(0, 0, NTP_SERVER);   // синхронизация времени в фоне
+                configTime(0, 0, NTP_SERVER); // синхронизация времени в фоне
                 ntpStarted = true;
             }
         }
@@ -74,7 +75,7 @@ bool wifiEnsure()
     if (wifiWasUp)
     {
         wifiWasUp = false;
-        tcp.stop();                  // старый TCP-сокет MQTT больше не годен
+        tcp.stop(); // старый TCP-сокет MQTT больше не годен
         Serial.println("# Wi-Fi: connection lost");
     }
     uint32_t now = millis();
@@ -84,7 +85,7 @@ bool wifiEnsure()
         wifiLastTryMs = now;
         Serial.printf("# Wi-Fi: connecting to \"%s\"... (status=%d)\r\n", WIFI_SSID, (int)WiFi.status());
         WiFi.disconnect();
-        WiFi.begin(WIFI_SSID, WIFI_PASS, WIFI_CHANNEL);  // не блокирует
+        WiFi.begin(WIFI_SSID, WIFI_PASS, WIFI_CHANNEL); // не блокирует
     }
     return false;
 }
@@ -108,7 +109,7 @@ bool mqttEnsure()
 
     uint32_t now = millis();
     if (mqttTried && now - mqttLastTryMs < mqttRetryMs)
-        return false;                // ещё рано для новой попытки
+        return false; // ещё рано для новой попытки
     mqttTried = true;
     mqttLastTryMs = now;
 
@@ -148,7 +149,7 @@ bool mqttPublish(const char *topic, const char *payload, bool retain)
 uint32_t epochNow()
 {
     time_t t = time(nullptr);
-    return (t > 1700000000) ? (uint32_t)t : 0;   // до синхронизации time() ≈ 0
+    return (t > 1700000000) ? (uint32_t)t : 0; // до синхронизации time() ≈ 0
 }
 
 // ---------------------------------------------------------------------
@@ -162,7 +163,7 @@ void linkTestStart(char mode, uint32_t durationMs)
     {
         // Wi-Fi пропадает «аварийно», без MQTT DISCONNECT: брокер сам
         // заметит пропажу по keep-alive и опубликует Last Will "offline".
-        tcp.stop();                  // закрыть сокет локально, пакет DISCONNECT не уходит
+        tcp.stop(); // закрыть сокет локально, пакет DISCONNECT не уходит
         WiFi.disconnect();
         wifiWasUp = false;
         Serial.printf("# TEST: Wi-Fi disabled for %lu s\r\n", (unsigned long)(durationMs / 1000));
@@ -178,7 +179,7 @@ bool linkTestActive() { return testMode != 0; }
 
 void IRAM_ATTR linkTestButtonIsr()
 {
-    buttonPressed = true;            // в ISR только флаг
+    buttonPressed = true; // в ISR только флаг
 }
 
 void linkTestPoll()
@@ -186,7 +187,7 @@ void linkTestPoll()
     if (testMode && (int32_t)(millis() - testUntilMs) >= 0)
     {
         testMode = 0;
-        mqttTried = false;           // сразу пробовать снова
+        mqttTried = false; // сразу пробовать снова
         Serial.println("# TEST: finished, restoring link");
     }
     if (buttonPressed)
